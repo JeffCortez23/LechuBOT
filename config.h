@@ -2,7 +2,7 @@
 #define CONFIG_H
 
 // --- DEFINICIÓN DE PINES (Tu Configuración Personalizada) ---
-// Sensores Infrarrojos
+// Sensores Infrarrojos (Conectados a pines analógicos)
 #define SENSOR_L A8
 #define SENSOR_C A9
 #define SENSOR_R A10
@@ -25,8 +25,9 @@
 
 // --- CONSTANTES DE CONTROL (¡VALORES A AJUSTAR!) ---
 const float Kp = 15.0;            // Constante Proporcional
-const float Kd = 25.0;            // Constante Derivativa
+const float Ki = 0;            // Constante Integral (¡EMPIEZA CON UN VALOR BAJO!)
+const float Kd = 0;            // Constante Derivativa
 const int baseSpeed = 140;        // Velocidad de crucero (0-255)
-const int obstacleThreshold = 15; // Distancia para detectar un obstáculo (en cm)
+const int obstacleThreshold = 30; // Distancia para detectar un obstáculo (en cm)
 
-#endifs
+#endif
