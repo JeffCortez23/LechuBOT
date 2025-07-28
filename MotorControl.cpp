@@ -14,19 +14,23 @@ void setupMotors() {
 }
 
 void moveMotors(int leftSpeed, int rightSpeed) {
+  // --- APLICAMOS LA COMPENSACIÓN AQUÍ ---
+  int adjustedLeftSpeed = leftSpeed * LEFT_MOTOR_TRIM;
+
   // Izquierda
-  if (leftSpeed >= 0) {
-    analogWrite(MOTOR_L_F_FWD, leftSpeed);
-    analogWrite(MOTOR_L_R_FWD, leftSpeed);
+  if (adjustedLeftSpeed >= 0) {
+    analogWrite(MOTOR_L_F_FWD, adjustedLeftSpeed);
+    analogWrite(MOTOR_L_R_FWD, adjustedLeftSpeed);
     digitalWrite(MOTOR_L_F_REV, LOW);
     digitalWrite(MOTOR_L_R_REV, LOW);
   } else {
-    analogWrite(MOTOR_L_F_REV, -leftSpeed);
-    analogWrite(MOTOR_L_R_REV, -leftSpeed);
+    analogWrite(MOTOR_L_F_REV, -adjustedLeftSpeed);
+    analogWrite(MOTOR_L_R_REV, -adjustedLeftSpeed);
     digitalWrite(MOTOR_L_F_FWD, LOW);
     digitalWrite(MOTOR_L_R_FWD, LOW);
   }
-  // Derecha
+  
+  // Derecha (sin cambios)
   if (rightSpeed >= 0) {
     analogWrite(MOTOR_R_F_FWD, rightSpeed);
     analogWrite(MOTOR_R_R_FWD, rightSpeed);

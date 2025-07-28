@@ -25,9 +25,14 @@
 
 // --- CONSTANTES DE CONTROL (¡VALORES A AJUSTAR!) ---
 const float Kp = 15.0;            // Constante Proporcional
-const float Ki = 0;            // Constante Integral (¡EMPIEZA CON UN VALOR BAJO!)
-const float Kd = 0;            // Constante Derivativa
-const int baseSpeed = 140;        // Velocidad de crucero (0-255)
-const int obstacleThreshold = 30; // Distancia para detectar un obstáculo (en cm)
+const float Ki = 0;               // Constante Integral
+const float Kd = 0;               // Constante Derivativa
+const int baseSpeed = 170;        // Velocidad de crucero (0-255)
+const int obstacleThreshold = 15; // Distancia para detectar un obstáculo (en cm)
+
+// NUEVA CONSTANTE DE COMPENSACIÓN
+// Si las ruedas izquierdas son lentas, aumenta este valor (ej: 1.05, 1.1).
+// Si las derechas son lentas, déjalo en 1.0 y habla conmigo para invertir la lógica.
+const float LEFT_MOTOR_TRIM = 1.05;
 
 #endif

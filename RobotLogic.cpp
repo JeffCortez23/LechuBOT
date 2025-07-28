@@ -14,10 +14,8 @@ void setupSensors() {
 }
 
 void followLine() {
-  // --- Calibración ---
-  int threshold = 535; // Tu valor umbral ya calculado
+  int threshold = 535;
 
-  // --- Lectura de Sensores ---
   int sL = analogRead(SENSOR_L) > threshold ? 1 : 0;
   int sC = analogRead(SENSOR_C) > threshold ? 1 : 0;
   int sR = analogRead(SENSOR_R) > threshold ? 1 : 0;
@@ -26,42 +24,26 @@ void followLine() {
   Serial.print(sL); Serial.print(","); Serial.print(sC); Serial.print(","); Serial.print(sR);
   Serial.print(" | ");
 
-  // --- Lógica de Decisión para Anchos Variables ---
-
-  // CASO 1: IR RECTO
-  // El robot debe ir recto si está perfectamente centrado (0 1 0) o si está
-  // completamente dentro de la línea ancha (1 1 1).
+  // --- Lógica de Decisión (sin cambios) ---
   if ((sL == 0 && sC == 1 && sR == 0) || (sL == 1 && sC == 1 && sR == 1)) {
     error = 0;
-    integral = 0; // Resetea el integral, no hay error acumulado.
-    Serial.print("Accion: ✅ Recto | ");
-  }
-  
-  // CASO 2: CORRECCIONES SUAVES (sobre la línea ancha)
-  else if (sL == 1 && sC == 1 && sR == 0) { // Un poco a la derecha, corregir a la izquierda
+    integral = 0;
+    Serial.print("Accion: ✅ Recto");
+  } else if (sL == 1 && sC == 1 && sR == 0) {
     error = -1;
-    Serial.print("Accion: ⬅️ Corrigiendo | ");
-  }
-  else if (sL == 0 && sC == 1 && sR == 1) { // Un poco a la izquierda, corregir a la derecha
+    Serial.print("Accion: ⬅️ Corrigiendo");
+  } else if (sL == 0 && sC == 1 && sR == 1) {
     error = 1;
-    Serial.print("Accion: ➡️ Corrigiendo | ");
-  }
-
-  // CASO 3: CORRECCIONES FUERTES (saliendo de la línea)
-  else if (sL == 1 && sC == 0 && sR == 0) { // Muy a la derecha
+    Serial.print("Accion: ➡️ Corrigiendo");
+  } else if (sL == 1 && sC == 0 && sR == 0) {
     error = -3;
-    Serial.print("Accion: ⬅️⬅️ Giro Fuerte | ");
-  }
-  else if (sL == 0 && sC == 0 && sR == 1) { // Muy a la izquierda
+    Serial.print("Accion: ⬅️⬅️ Giro Fuerte");
+  } else if (sL == 0 && sC == 0 && sR == 1) {
     error = 3;
-    Serial.print("Accion: ➡️➡️ Giro Fuerte | ");
-  }
-
-  // CASO 4: LÍNEA PERDIDA
-  else if (sL == 0 && sC == 0 && sR == 0) {
-    // Gira en la última dirección del error para buscar la línea
+    Serial.print("Accion: ➡️➡️ Giro Fuerte");
+  } else if (sL == 0 && sC == 0 && sR == 0) {
     if (lastError > 0) { error = 5; } else { error = -5; }
-    Serial.print("Accion: ❓ Buscando... | ");
+    Serial.print("Accion: ❓ Buscando...");
   }
 
   // --- Cálculo y Aplicación del PID ---
@@ -73,9 +55,12 @@ void followLine() {
   int rightSpeed = constrain(baseSpeed - correction, -255, 255);
 
   moveMotors(leftSpeed, rightSpeed);
-}
 
-// ... (resto de tu código)
+  // --- ARREGLO DEL MONITOR SERIE ---
+  // Imprimimos la corrección y un salto de línea final.
+  Serial.print(" | Correccion: ");
+  Serial.println(correction); // Usamos println para el salto de línea.
+}
 
 void avoidObstacle() {
   Serial.println("--- 🚧 ¡OBSTACULO DETECTADO! INICIANDO MANIOBRA AMPLIA 🚧 ---");
