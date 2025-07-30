@@ -1,4 +1,5 @@
 #include "KalmanFilter.h"
+#include <Arduino.h>
 
 // Constructor
 KalmanFilter::KalmanFilter(float q, float r) {

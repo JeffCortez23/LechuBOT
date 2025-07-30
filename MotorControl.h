@@ -2,7 +2,7 @@
 #define MOTOR_CONTROL_H
 
 void setupMotors();
-void moveMotors(int leftSpeed, int rightSpeed);
+void moveMotors(int frontLeftSpeed, int rearLeftSpeed, int frontRightSpeed, int rearRightSpeed);
 void stopMotors();
 
 #endif

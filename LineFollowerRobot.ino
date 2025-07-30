@@ -14,15 +14,15 @@ void setup() {
 
 void loop() {
   long distance = checkObstacle();
-  Serial.print("Dist: ");
-  Serial.print(distance);
-  Serial.print(" cm | ");
-  
+
   if (distance < obstacleThreshold && distance > 0) {
+    Serial.println("Distancia Ultrasónico: ");
+    Serial.println(distance);
+    Serial.println(" cm. ¡Obstáculo detectado!");
     avoidObstacle();
   } else {
     followLine();
   }
   
-  delay(50); 
+  delay(10); 
 }

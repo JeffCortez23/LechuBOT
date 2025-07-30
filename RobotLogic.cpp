@@ -9,6 +9,7 @@ float error = 0;
 float lastError = 0;
 float integral = 0;
 
+// Instancia del Filtro de Kalman
 KalmanFilter kalmanFilter(KALMAN_Q, KALMAN_R);
 
 void setupSensors() {
@@ -17,121 +18,119 @@ void setupSensors() {
 }
 
 void followLine() {
-  int threshold = 535;
+  int threshold = 525; // Umbral calibrado
 
   int sL = analogRead(SENSOR_L) > threshold ? 1 : 0;
   int sC = analogRead(SENSOR_C) > threshold ? 1 : 0;
   int sR = analogRead(SENSOR_R) > threshold ? 1 : 0;
 
   Serial.print("Sensores[L,C,R]: ");
-  Serial.print(sL); Serial.print(","); Serial.print(sC); Serial.print(","); Serial.print(sR);
-  Serial.print(" | ");
+  Serial.print(sL); Serial.print(sC); Serial.print(sR);
 
-  // --- Lógica de Decisión (sin cambios) ---
-  if ((sL == 0 && sC == 1 && sR == 0) || (sL == 1 && sC == 1 && sR == 1)) {
+  // Lógica de cálculo de error
+  if ((sL == 0 && sC == 1 && sR == 0) || (sL == 1 && sC == 1 && sR == 1) || (sL == 1 && sC == 0 && sR == 1)) {
     error = 0;
-    integral = 0;
-    Serial.print("Accion: ✅ Recto");
   } else if (sL == 1 && sC == 1 && sR == 0) {
     error = -1;
-    Serial.print("Accion: ⬅️ Corrigiendo");
   } else if (sL == 0 && sC == 1 && sR == 1) {
     error = 1;
-    Serial.print("Accion: ➡️ Corrigiendo");
   } else if (sL == 1 && sC == 0 && sR == 0) {
     error = -3;
-    Serial.print("Accion: ⬅️⬅️ Giro Fuerte");
   } else if (sL == 0 && sC == 0 && sR == 1) {
     error = 3;
-    Serial.print("Accion: ➡️➡️ Giro Fuerte");
   } else if (sL == 0 && sC == 0 && sR == 0) {
     if (lastError > 0) { error = 5; } else { error = -5; }
-    Serial.print("Accion: ❓ Buscando...");
   }
 
- // <-- 3. APLICAR EL FILTRO DE KALMAN
-  // Pasamos el 'error' medido al filtro y obtenemos un 'error' estimado.
   float filteredError = kalmanFilter.update(error);
 
-// --- Cálculo y Aplicación del PID (AHORA USAMOS EL ERROR FILTRADO) ---
-  integral += filteredError; // Usamos el error filtrado para el integral
+  integral += filteredError;
+  if (error == 0) { integral = 0; }
   float correction = (Kp * filteredError) + (Ki * integral) + (Kd * (filteredError - lastError));
-  lastError = filteredError; // Actualizamos el último error con el valor filtrado
+  lastError = filteredError;
   
-  int leftSpeed = constrain(baseSpeed + correction, -255, 255);
-  int rightSpeed = constrain(baseSpeed - correction, -255, 255);
+  Serial.print(" | Err: "); Serial.print(error);
+  Serial.print(" | Corr: "); Serial.print(correction, 2);
 
-  moveMotors(leftSpeed, rightSpeed);
+  int leftBaseSpeed = baseSpeed + correction;
+  int rightBaseSpeed = baseSpeed - correction;
+  int frontLeftSpeed, rearLeftSpeed, frontRightSpeed, rearRightSpeed;
 
-  Serial.print(" | Error Crudo: ");
-  Serial.print(error);
-  Serial.print(" | Error Filtrado: ");
-  Serial.print(filteredError);
-  Serial.print(" | Correccion: ");
-  Serial.println(correction);
+  if (correction > 0) { // Girando a la derecha
+    frontRightSpeed = rightBaseSpeed * 0.8;
+    rearRightSpeed = rightBaseSpeed;
+    frontLeftSpeed = leftBaseSpeed;
+    rearLeftSpeed = leftBaseSpeed;
+  } else if (correction < 0) { // Girando a la izquierda
+    frontLeftSpeed = leftBaseSpeed * 0.8;
+    rearLeftSpeed = leftBaseSpeed;
+    frontRightSpeed = rightBaseSpeed;
+    rearRightSpeed = rightBaseSpeed;
+  } else { // Yendo recto
+    frontLeftSpeed = baseSpeed;
+    rearLeftSpeed = baseSpeed;
+    frontRightSpeed = baseSpeed;
+    rearRightSpeed = baseSpeed;
+  }
+
+  moveMotors(
+    constrain(frontLeftSpeed, -255, 255),
+    constrain(rearLeftSpeed, -255, 255),
+    constrain(frontRightSpeed, -255, 255),
+    constrain(rearRightSpeed, -255, 255)
+  );
 }
 
 void avoidObstacle() {
-  Serial.println("--- 🚧 ¡OBSTACULO DETECTADO! INICIANDO MANIOBRA AMPLIA 🚧 ---");
-  
-  // 1. DETENERSE Y RETROCEDER
-  // Creamos espacio para poder girar cómodamente.
-  Serial.println("Paso 1: Creando espacio...");
-  stopMotors();
-  delay(300);
-  moveMotors(-150, -150); // Marcha atrás suave
-  delay(400);            // Retrocede por 0.4 segundos
-  stopMotors();
-  delay(300);
-
-  // 2. GIRO DE 90 GRADOS (hacia la izquierda)
-  // Apuntamos hacia un lado para empezar a rodear.
-  // ¡AJUSTA EL DELAY HASTA QUE EL GIRO SEA DE 90 GRADOS EXACTOS!
-  Serial.println("Paso 2: Girando 90 grados...");
-  moveMotors(-200, 200); // Gira sobre su eje (Izquierda atrás, Derecha adelante)
-  delay(750);            // ¡ESTE VALOR ES CRÍTICO! Ajústalo para tu robot.
-  stopMotors();
-  delay(300);
-
-  // 3. AVANZAR EN LÍNEA RECTA (para pasar el obstáculo por el lado)
-  // Este es el tramo que define qué tan lejos rodeamos el objeto.
-  Serial.println("Paso 3: Avanzando por el lateral...");
-  moveMotors(200, 200);
-  delay(1200);           // ¡Aumenta este valor si chocas por el lado!
-  stopMotors();
-  delay(300);
-
-  // 4. SEGUNDO GIRO DE 90 GRADOS (hacia la derecha)
-  // Volvemos a apuntar en la dirección original de la pista.
-  Serial.println("Paso 4: Re-orientando...");
-  moveMotors(200, -200); // Gira en sentido contrario
-  delay(750);            // Usa el MISMO valor que en el paso 2.
-  stopMotors();
-  delay(300);
-
-  // 5. AVANZAR PARA SOBREPASAR COMPLETAMENTE
-  // Nos aseguramos de que la parte trasera del robot también haya pasado el obstáculo.
-  Serial.println("Paso 5: Asegurando el paso...");
-  moveMotors(200, 200);
-  delay(1500);           // ¡Aumenta este valor si el robot gira y choca con el obstáculo!
-  stopMotors();
-  delay(300);
-
-  // 6. TERCER GIRO DE 90 GRADOS (hacia la derecha)
-  // Giramos para encarar de nuevo la pista y buscar la línea.
-  Serial.println("Paso 6: Buscando la línea...");
-  moveMotors(200, -200);
-  delay(750);            // Usa el MISMO valor que en el paso 2.
+  Serial.println("\n--- INICIO MANIOBRA DE EVASIÓN ---");
+  Serial.println("Paso 1: Deteniendo motores.");
   stopMotors();
   delay(300);
   
-  // 7. FIN DE LA MANIOBRA
-  // El robot ahora avanzará y la función followLine() se encargará de re-alinearse
-  // cuando uno de los sensores encuentre la línea negra.
-  Serial.println("--- ✅ FIN DE MANIOBRA. Reanudando seguimiento. ---");
+  Serial.println("Paso 2: Retrocediendo...");
+  moveMotors(-150, -150, -150, -150);
+  delay(400);
+  
+  stopMotors();
+  delay(300);
+  
+  Serial.println("Paso 3: Girando a la izquierda...");
+  moveMotors(-200, -200, 200, 200);
+  delay(750);
+  
+  stopMotors();
+  delay(300);
+  
+  Serial.println("Paso 4: Avanzando por el lateral...");
+  moveMotors(200, 200, 200, 200);
+  delay(1200);
+  
+  stopMotors();
+  delay(300);
+  
+  Serial.println("Paso 5: Girando a la derecha (re-orientando)...");
+  moveMotors(200, 200, -200, -200);
+  delay(750);
+  
+  stopMotors();
+  delay(300);
+  
+  Serial.println("Paso 6: Avanzando para sobrepasar...");
+  moveMotors(200, 200, 200, 200);
+  delay(1500);
+  
+  stopMotors();
+  delay(300);
+  
+  Serial.println("Paso 7: Girando a la derecha (buscando línea)...");
+  moveMotors(200, 200, -200, -200);
+  delay(750);
+  
+  stopMotors();
+  delay(300);
+  Serial.println("--- FIN DE MANIOBRA ---");
 }
 
-// ... (El resto de tus funciones como followLine y checkObstacle)
 long checkObstacle() {
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
