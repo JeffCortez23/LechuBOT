@@ -35,4 +35,9 @@ const int obstacleThreshold = 15; // Distancia para detectar un obstáculo (en c
 // Si las derechas son lentas, déjalo en 1.0 y habla conmigo para invertir la lógica.
 const float LEFT_MOTOR_TRIM = 1.05;
 
+// --- NUEVAS CONSTANTES PARA EL FILTRO DE KALMAN ---
+// ¡VALORES A AJUSTAR!
+const float KALMAN_Q = 0.1;  // Ruido del proceso
+const float KALMAN_R = 4.0;   // Ruido de la medición
+
 #endif

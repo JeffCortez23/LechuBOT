@@ -2,11 +2,14 @@
 #include "config.h"
 #include "RobotLogic.h"
 #include "MotorControl.h"
+#include "KalmanFilter.h" 
 
 // Variables Globales para el PID
 float error = 0;
 float lastError = 0;
 float integral = 0;
+
+KalmanFilter kalmanFilter(KALMAN_Q, KALMAN_R);
 
 void setupSensors() {
   pinMode(TRIG_PIN, OUTPUT);
@@ -46,20 +49,26 @@ void followLine() {
     Serial.print("Accion: ❓ Buscando...");
   }
 
-  // --- Cálculo y Aplicación del PID ---
-  integral += error;
-  float correction = (Kp * error) + (Ki * integral) + (Kd * (error - lastError));
-  lastError = error;
+ // <-- 3. APLICAR EL FILTRO DE KALMAN
+  // Pasamos el 'error' medido al filtro y obtenemos un 'error' estimado.
+  float filteredError = kalmanFilter.update(error);
+
+// --- Cálculo y Aplicación del PID (AHORA USAMOS EL ERROR FILTRADO) ---
+  integral += filteredError; // Usamos el error filtrado para el integral
+  float correction = (Kp * filteredError) + (Ki * integral) + (Kd * (filteredError - lastError));
+  lastError = filteredError; // Actualizamos el último error con el valor filtrado
   
   int leftSpeed = constrain(baseSpeed + correction, -255, 255);
   int rightSpeed = constrain(baseSpeed - correction, -255, 255);
 
   moveMotors(leftSpeed, rightSpeed);
 
-  // --- ARREGLO DEL MONITOR SERIE ---
-  // Imprimimos la corrección y un salto de línea final.
+  Serial.print(" | Error Crudo: ");
+  Serial.print(error);
+  Serial.print(" | Error Filtrado: ");
+  Serial.print(filteredError);
   Serial.print(" | Correccion: ");
-  Serial.println(correction); // Usamos println para el salto de línea.
+  Serial.println(correction);
 }
 
 void avoidObstacle() {
