@@ -22,28 +22,13 @@
 #define TRIG_PIN 14
 #define ECHO_PIN 15
 
-// --- CONSTANTES DE CONTROL (OPTIMIZADAS) ---
-const float Kp = 14.0;            // Más suave que 18.0
-const float Ki = 0.03;            // Reducido para evitar oscilaciones
-const float Kd = 10.0;            // Más estable que 15.0
-const int obstacleThreshold = 20;
-
-// Umbrales dinámicos (se calibrarán)
-extern int BLACK_THRESHOLD_L;
-extern int BLACK_THRESHOLD_C;
-extern int BLACK_THRESHOLD_R;
-extern int WHITE_THRESHOLD_L;
-extern int WHITE_THRESHOLD_C;
-extern int WHITE_THRESHOLD_R;
+// --- CONSTANTES DE CONTROL (PD Balanceado) ---
+const float Kp = 14.0; // Reducido para un control más suave en curvas.
+const float Kd = 12.0; // Reducido para menos agresividad, pero manteniendo la estabilidad.
+const int obstacleThreshold = 40;
 
 // Compensación motores
 const float LEFT_MOTOR_TRIM = 1.05;
-
-// Kalman
-const float KALMAN_Q_PID = 0.1;
-const float KALMAN_R_PID = 4.0;
-const float KALMAN_Q_US = 0.1;
-const float KALMAN_R_US = 4.0;
 
 #define DEBUG_MODE true
 

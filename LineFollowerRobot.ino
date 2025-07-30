@@ -2,26 +2,31 @@
 #include "MotorControl.h"
 #include "RobotLogic.h"
 
+unsigned long startTime; // Variable para guardar el tiempo de inicio
+
 void setup() {
-  Serial.begin(115200);  // Aumentado a 115200 bauds
+  Serial.begin(115200);
   
   setupMotors();
   setupSensors();
   
-  // Nueva calibración automática
-  calibrateSensors();
-  
   Serial.println("✅ Robot listo!");
-  delay(1000);
+  startTime = millis(); // Guardamos el momento exacto en que termina la configuración.
 }
 
 void loop() {
-  long distance = checkObstacle();
-  
-  if (distance > 0 && distance < obstacleThreshold) {
-    avoidObstacle();
+  // --- SOLUCIÓN DEFINITIVA AL ARRANQUE EN REVERSA ---
+  // Durante el primer 1.5 segundo, el robot SÓLO seguirá la línea.
+  if (millis() - startTime < 1500) {
+    followLine(); // Forzamos el seguimiento de línea, ignorando todo lo demás.
   } else {
-    followLine();
+    // Después del período de gracia, el robot funciona normalmente.
+    long distance = checkObstacle();
+    if (distance > 0 && distance < obstacleThreshold) {
+      avoidObstacle();
+    } else {
+      followLine();
+    }
   }
   
   delay(10);
