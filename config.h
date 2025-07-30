@@ -25,16 +25,20 @@
 
 // --- CONSTANTES DE CONTROL (AJUSTADAS PARA ESTABILIDAD) ---
 const float Kp = 20.0;            // Constante Proporcional (reducida para suavidad)
-const float Ki = 0.0;             // Constante Integral (DESACTIVADA PARA EVITAR GIROS LOCOS)
+const float Ki = 0.0;             // Constante Integral (DESACTIVADA)
 const float Kd = 25.0;            // Constante Derivativa (ajustada para el nuevo Kp)
-const int baseSpeed = 50;        // Velocidad de crucero
-const int obstacleThreshold = 15; // AUMENTAMOS la distancia para detectar un obstáculo (en cm)
+const int baseSpeed = 150;        // Velocidad de crucero
+const int obstacleThreshold = 25; // AUMENTAMOS la distancia para detectar un obstáculo (en cm)
 
 // CONSTANTE DE COMPENSACIÓN DE MOTORES
 const float LEFT_MOTOR_TRIM = 1.05;
 
-// CONSTANTES PARA EL FILTRO DE KALMAN
-const float KALMAN_Q = 0.1;  // Ruido del proceso
-const float KALMAN_R = 4.0;   // Ruido de la medición
+// --- CONSTANTES PARA LOS FILTROS DE KALMAN ---
+// Para el error del PID
+const float KALMAN_Q_PID = 0.1;
+const float KALMAN_R_PID = 4.0;
+// Para el Sensor Ultrasónico
+const float KALMAN_Q_US = 0.1;  // Ruido del proceso del sensor
+const float KALMAN_R_US = 4.0;   // Ruido de la medición del sensor
 
 #endif

@@ -9,8 +9,9 @@ float error = 0;
 float lastError = 0;
 float integral = 0;
 
-// Instancia del Filtro de Kalman
-KalmanFilter kalmanFilter(KALMAN_Q, KALMAN_R);
+// DOS INSTANCIAS DEL FILTRO DE KALMAN
+KalmanFilter pidKalmanFilter(KALMAN_Q_PID, KALMAN_R_PID);
+KalmanFilter ultrasonicKalmanFilter(KALMAN_Q_US, KALMAN_R_US);
 
 void setupSensors() {
   pinMode(TRIG_PIN, OUTPUT);
@@ -18,16 +19,11 @@ void setupSensors() {
 }
 
 void followLine() {
-  int threshold = 525; // Umbral calibrado
-
+  int threshold = 525;
   int sL = analogRead(SENSOR_L) > threshold ? 1 : 0;
   int sC = analogRead(SENSOR_C) > threshold ? 1 : 0;
   int sR = analogRead(SENSOR_R) > threshold ? 1 : 0;
 
-  Serial.print("Sensores[L,C,R]: ");
-  Serial.print(sL); Serial.print(sC); Serial.print(sR);
-
-  // Lógica de cálculo de error
   if ((sL == 0 && sC == 1 && sR == 0) || (sL == 1 && sC == 1 && sR == 1) || (sL == 1 && sC == 0 && sR == 1)) {
     error = 0;
   } else if (sL == 1 && sC == 1 && sR == 0) {
@@ -42,31 +38,28 @@ void followLine() {
     if (lastError > 0) { error = 5; } else { error = -5; }
   }
 
-  float filteredError = kalmanFilter.update(error);
+  float filteredError = pidKalmanFilter.update(error);
 
   integral += filteredError;
   if (error == 0) { integral = 0; }
   float correction = (Kp * filteredError) + (Ki * integral) + (Kd * (filteredError - lastError));
   lastError = filteredError;
   
-  Serial.print(" | Err: "); Serial.print(error);
-  Serial.print(" | Corr: "); Serial.print(correction, 2);
-
   int leftBaseSpeed = baseSpeed + correction;
   int rightBaseSpeed = baseSpeed - correction;
   int frontLeftSpeed, rearLeftSpeed, frontRightSpeed, rearRightSpeed;
 
-  if (correction > 0) { // Girando a la derecha
+  if (correction > 0) {
     frontRightSpeed = rightBaseSpeed * 0.8;
     rearRightSpeed = rightBaseSpeed;
     frontLeftSpeed = leftBaseSpeed;
     rearLeftSpeed = leftBaseSpeed;
-  } else if (correction < 0) { // Girando a la izquierda
+  } else if (correction < 0) {
     frontLeftSpeed = leftBaseSpeed * 0.8;
     rearLeftSpeed = leftBaseSpeed;
     frontRightSpeed = rightBaseSpeed;
     rearRightSpeed = rightBaseSpeed;
-  } else { // Yendo recto
+  } else {
     frontLeftSpeed = baseSpeed;
     rearLeftSpeed = baseSpeed;
     frontRightSpeed = baseSpeed;
@@ -82,53 +75,32 @@ void followLine() {
 }
 
 void avoidObstacle() {
-  Serial.println("\n--- INICIO MANIOBRA DE EVASIÓN ---");
-  Serial.println("Paso 1: Deteniendo motores.");
   stopMotors();
   delay(300);
-  
-  Serial.println("Paso 2: Retrocediendo...");
   moveMotors(-150, -150, -150, -150);
   delay(400);
-  
   stopMotors();
   delay(300);
-  
-  Serial.println("Paso 3: Girando a la izquierda...");
   moveMotors(-200, -200, 200, 200);
   delay(750);
-  
   stopMotors();
   delay(300);
-  
-  Serial.println("Paso 4: Avanzando por el lateral...");
   moveMotors(200, 200, 200, 200);
   delay(1200);
-  
   stopMotors();
   delay(300);
-  
-  Serial.println("Paso 5: Girando a la derecha (re-orientando)...");
   moveMotors(200, 200, -200, -200);
   delay(750);
-  
   stopMotors();
   delay(300);
-  
-  Serial.println("Paso 6: Avanzando para sobrepasar...");
   moveMotors(200, 200, 200, 200);
   delay(1500);
-  
   stopMotors();
   delay(300);
-  
-  Serial.println("Paso 7: Girando a la derecha (buscando línea)...");
   moveMotors(200, 200, -200, -200);
   delay(750);
-  
   stopMotors();
   delay(300);
-  Serial.println("--- FIN DE MANIOBRA ---");
 }
 
 long checkObstacle() {
@@ -137,5 +109,12 @@ long checkObstacle() {
   digitalWrite(TRIG_PIN, HIGH);
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
-  return pulseIn(ECHO_PIN, HIGH, 30000) * 0.034 / 2;
+  long raw_distance = pulseIn(ECHO_PIN, HIGH, 30000) * 0.034 / 2;
+
+  if (raw_distance > 0) {
+    long filtered_distance = ultrasonicKalmanFilter.update(raw_distance);
+    return filtered_distance;
+  }
+  
+  return 500;
 }

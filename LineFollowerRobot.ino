@@ -16,9 +16,6 @@ void loop() {
   long distance = checkObstacle();
 
   if (distance < obstacleThreshold && distance > 0) {
-    Serial.println("Distancia Ultrasónico: ");
-    Serial.println(distance);
-    Serial.println(" cm. ¡Obstáculo detectado!");
     avoidObstacle();
   } else {
     followLine();

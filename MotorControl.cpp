@@ -14,15 +14,6 @@ void setupMotors() {
 }
 
 void moveMotors(int frontLeftSpeed, int rearLeftSpeed, int frontRightSpeed, int rearRightSpeed) {
-  
-  // --- TELEMETRÍA DE MOTORES CON SALTO DE LÍNEA ---
-  Serial.print(" | Motores[FL,RL,FR,RR]: ");
-  Serial.print(frontLeftSpeed); Serial.print(",");
-  Serial.print(rearLeftSpeed); Serial.print(",");
-  Serial.print(frontRightSpeed); Serial.print(",");
-  Serial.println(rearRightSpeed); // <-- CAMBIO CLAVE: println() aquí
-
-  // --- Lógica de control de 4 ruedas (con nombres de pines corregidos) ---
   float adjustedFLSpeed = frontLeftSpeed * LEFT_MOTOR_TRIM;
   if (adjustedFLSpeed >= 0) {
     analogWrite(MOTOR_FL_FWD, adjustedFLSpeed);
