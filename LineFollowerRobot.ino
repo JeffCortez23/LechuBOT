@@ -3,23 +3,26 @@
 #include "RobotLogic.h"
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);  // Aumentado a 115200 bauds
   
   setupMotors();
   setupSensors();
-
-  Serial.println("✅ Sistema de Robot Modularizado: INICIADO");
+  
+  // Nueva calibración automática
+  calibrateSensors();
+  
+  Serial.println("✅ Robot listo!");
   delay(1000);
 }
 
 void loop() {
   long distance = checkObstacle();
-
-  if (distance < obstacleThreshold && distance > 0) {
+  
+  if (distance > 0 && distance < obstacleThreshold) {
     avoidObstacle();
   } else {
     followLine();
   }
   
-  delay(10); 
+  delay(10);
 }
