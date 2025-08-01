@@ -34,7 +34,7 @@ El robot sigue la línea utilizando un controlador PD que calcula un `error` bas
 
 - **Error:** Se calcula un valor de `error` que indica la posición relativa del robot con respecto a la línea. El valor es 0 cuando el robot está centrado y aumenta negativamente (giro a la izquierda) o positivamente (giro a la derecha) a medida que se desvía.
 - **Velocidad Adaptativa:** La velocidad base del robot se ajusta dinámicamente:
-    - `140` para tramos rectos.
+    - `110` para tramos rectos.
     - `110` para curvas suaves.
     - `90` para giros cerrados.
 - **Point Turn:** En desviaciones extremas, el robot realiza un giro sobre su propio eje para volver rápidamente a la línea.
