@@ -23,9 +23,9 @@
 #define ECHO_PIN 15
 
 // --- CONSTANTES DE CONTROL (PD Balanceado) ---
-const float Kp = 20.0; // Aumentado para una reacción más fuerte al error.
-const float Kd = 15.0; // Aumentado para mayor estabilidad en la corrección.
-const int obstacleThreshold = ;
+const float Kp = 15.0; // Aumentado para una reacción más fuerte al error.
+const float Kd = 20.0; // Aumentado para mayor estabilidad en la corrección.
+const int obstacleThreshold = 20;
 
 // Compensación motores
 const float LEFT_MOTOR_TRIM = 1.05;
