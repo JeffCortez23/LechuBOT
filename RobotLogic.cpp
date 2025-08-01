@@ -37,7 +37,7 @@ void followLine() {
     Serial.print(") R:"); Serial.print(smoothedR); Serial.print("("); Serial.print(sR); Serial.print(")");
   }
 
-  // Lógica de error
+  // Lógica de error (sin cambios)
   if (sC) {
     if (!sL && !sR) error = 0;
     else if (sL && !sR) error = -2;
@@ -62,7 +62,7 @@ void followLine() {
     }
   }
 
-  // Velocidad adaptativa
+  // Velocidad adaptativa (sin cambios)
   int currentBaseSpeed;
   if (abs(error) >= 4) {
     currentBaseSpeed = 90;
@@ -72,28 +72,32 @@ void followLine() {
     currentBaseSpeed = 140;
   }
 
-  // --- CONTROLADOR PD (SIN COMPONENTE INTEGRAL) ---
+  // --- CONTROLADOR PD CON CORRECCIONES ---
   float derivative = error - lastError;
-  float correction = (Kp * error) + (Kd * derivative); // <-- ¡Solo P y D!
+  float correction = (Kp * error) + (Kd * derivative);
   lastError = error;
   
-  correction = constrain(correction, -100, 100);
+  // ¡NUEVO! Limitamos la corrección para evitar reacciones exageradas.
+  correction = constrain(correction, -150, 150);
   
   int leftSpeed = currentBaseSpeed + correction;
   int rightSpeed = currentBaseSpeed - correction;
   
+  // --- LÓGICA DE GIRO CORREGIDA (Point Turn) ---
   if (abs(error) >= 4) {
-    if (correction > 0) {
-      leftSpeed = currentBaseSpeed + abs(correction);
-      rightSpeed = currentBaseSpeed / 2;
-    } else {
-      leftSpeed = currentBaseSpeed / 2;
-      rightSpeed = currentBaseSpeed + abs(correction);
+    if (error > 0) { // Desviado a la izquierda, necesita girar a la DERECHA.
+      leftSpeed = 200;   // Rueda exterior (izquierda) gira más rápido.
+      rightSpeed = 0;    // Rueda interior (derecha) se detiene para un giro cerrado.
+    } else {           // Desviado a la derecha, necesita girar a la IZQUIERDA.
+      leftSpeed = 0;     // Rueda interior (izquierda) se detiene.
+      rightSpeed = 200;  // Rueda exterior (derecha) gira más rápido.
     }
   }
 
-  leftSpeed = constrain(leftSpeed, 0, 255);
-  rightSpeed = constrain(rightSpeed, 0, 255);
+  // Nos aseguramos de que las velocidades no excedan el máximo de PWM (0-255).
+  // La función moveMotors ya maneja velocidades negativas, pero es bueno mantener esto por seguridad.
+  leftSpeed = constrain(leftSpeed, -255, 255);
+  rightSpeed = constrain(rightSpeed, -255, 255);
 
   if(DEBUG_MODE) {
     Serial.print(" Err:"); Serial.print(error);
@@ -134,25 +138,29 @@ void avoidObstacle() {
   stopMotors();
   delay(250);
 
+  // --- PASO 5 MEJORADO: BÚSQUEDA ACTIVA DE LÍNEA ---
   Serial.println("Paso 5: BÚSQUEDA ACTIVA de la línea...");
-  moveMotors(120, 120, 120, 120);
+  moveMotors(130, 130, -130, -130); // Gira sobre su eje hacia la derecha para buscar.
   
   unsigned long searchStartTime = millis();
-  while(analogRead(SENSOR_R) < 500) { 
-    if (millis() - searchStartTime > 2500) {
-      Serial.println("¡Línea no encontrada! Abortando.");
-      break;
+  // Espera a que CUALQUIER sensor (central, derecho o izquierdo) encuentre la línea
+  while(analogRead(SENSOR_C) < 500 && analogRead(SENSOR_R) < 500 && analogRead(SENSOR_L) < 500) { 
+    if (millis() - searchStartTime > 4000) { // Aumenta el tiempo de búsqueda por si acaso
+      Serial.println("¡Línea no encontrada! Abortando maniobra.");
+      // Opcional: Implementar una estrategia de emergencia, como detenerse.
+      stopMotors(); 
+      return; // Salir de la función de evasión
     }
     delay(10);
   }
   
-  Serial.println("Paso 6: REALINEACIÓN sobre la línea...");
-  moveMotors(-100, -100, 100, 100);
-  delay(200);
+  // --- PASO 6: REALINEACIÓN ---
+  Serial.println("¡Línea encontrada! Realineando...");
   stopMotors();
+  delay(100);
   
   Serial.println("Maniobra completada. Seguimiento reanudado.");
-  lastError = 0;
+  lastError = 0; // Reinicia el error para un arranque suave
 }
 
 long checkObstacle() {
