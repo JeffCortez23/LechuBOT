@@ -22,9 +22,9 @@
 #define TRIG_PIN 14
 #define ECHO_PIN 15
 
-// --- CONSTANTES DE CONTROL (PD Balanceado) ---
-const float Kp = 15.0; // Aumentado para una reacción más fuerte al error.
-const float Kd = 20.0; // Aumentado para mayor estabilidad en la corrección.
+// --- CONSTANTES DE CONTROL (PD) ---
+const float Kp = 15.0; //Proporcional
+const float Kd = 20.0; //Derivativo
 const int obstacleThreshold = 20;
 
 // Compensación motores

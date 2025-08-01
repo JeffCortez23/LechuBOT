@@ -25,75 +25,56 @@ void followLine() {
   smoothedC = (SMOOTHING_FACTOR * analogRead(SENSOR_C)) + ((1-SMOOTHING_FACTOR) * smoothedC);
   smoothedR = (SMOOTHING_FACTOR * analogRead(SENSOR_R)) + ((1-SMOOTHING_FACTOR) * smoothedR);
 
-  const int FIXED_LINE_THRESHOLD = 500;
-  
-  int sL = smoothedL > FIXED_LINE_THRESHOLD ? 1 : 0;
-  int sC = smoothedC > FIXED_LINE_THRESHOLD ? 1 : 0;
-  int sR = smoothedR > FIXED_LINE_THRESHOLD ? 1 : 0;
+  float linePosition = 0;
+  float totalWeight = 0;
 
-  if(DEBUG_MODE) {
-    Serial.print("L:"); Serial.print(smoothedL); Serial.print("("); Serial.print(sL);
-    Serial.print(") C:"); Serial.print(smoothedC); Serial.print("("); Serial.print(sC);
-    Serial.print(") R:"); Serial.print(smoothedR); Serial.print("("); Serial.print(sR); Serial.print(")");
+  if (smoothedL > 500) {
+    linePosition += -2 * smoothedL;
+    totalWeight += smoothedL;
+  }
+  if (smoothedC > 500) {
+    linePosition += 0 * smoothedC;  
+    totalWeight += smoothedC;
+  }
+  if (smoothedR > 500) {
+    linePosition += 2 * smoothedR;  
+    totalWeight += smoothedR;
   }
 
-  // Lógica de error
-  if (sC) {
-    if (!sL && !sR) error = 0;
-    else if (sL && !sR) error = -2;
-    else if (!sL && sR) error = 2;
-    else error = 0;
+  // Calcula el error real si se detecta la línea
+  if (totalWeight > 0) {
+    error = linePosition / totalWeight;
     lastLineTime = millis();
-  } 
-  else if (sL && !sR) {
-    error = -4;
-    lastLineTime = millis();
-  } 
-  else if (!sL && sR) {
-    error = 4;
-    lastLineTime = millis();
-  }
-  else {
+  } else {
     unsigned long timeSinceLine = millis() - lastLineTime;
-    if (timeSinceLine < 200) {
-      error = (lastError > 0) ? 5 : -5;
-    } else {
+    if (timeSinceLine > 200) {
       error = (lastError > 0) ? 8 : -8;
+    } else {
+      error = (lastError > 0) ? 4 : -4;
     }
   }
 
   // Velocidad adaptativa 
   int currentBaseSpeed;
-  if (abs(error) >= 4) {
+  if (abs(error) > 3) { 
     currentBaseSpeed = 90;
-  } else if (abs(error) >= 2) {
+  } else if (abs(error) > 1) {
     currentBaseSpeed = 110;
   } else {
-    currentBaseSpeed = 140;
+    currentBaseSpeed = 110; 
   }
-
+  
   // --- CONTROLADOR PD CON CORRECCIONES ---
   float derivative = error - lastError;
   float correction = (Kp * error) + (Kd * derivative);
   lastError = error;
   
-  // ¡NUEVO! Limitamos la corrección para evitar reacciones exageradas.
-  correction = constrain(correction, -150, 150);
+  // Limitamos la corrección para evitar reacciones exageradas.
+  correction = constrain(correction, -255, 255);
   
   int leftSpeed = currentBaseSpeed + correction;
   int rightSpeed = currentBaseSpeed - correction;
   
-// --- LÓGICA DE GIRO CORREGIDA (Point Turn) ---
-  if (abs(error) >= 4) {
-    if (error > 0) { // Desviado a la izquierda, necesita girar a la DERECHA.
-      leftSpeed = 150;   // Rueda exterior (izquierda) gira a una velocidad moderada.
-      rightSpeed = -150;    // Rueda interior (derecha) gira en reversa para un giro más cerrado y controlado.
-    } else {           // Desviado a la derecha, necesita girar a la IZQUIERDA.
-      leftSpeed = -150;     // Rueda interior (izquierda) gira en reversa.
-      rightSpeed = 150;  // Rueda exterior (derecha) gira a una velocidad moderada.
-    }
-  }
-
   // Nos aseguramos de que las velocidades no excedan el máximo de PWM (0-255).
   leftSpeed = constrain(leftSpeed, -255, 255);
   rightSpeed = constrain(rightSpeed, -255, 255);
@@ -150,8 +131,7 @@ void avoidObstacle() {
     }
     delay(10);
   }
-  
-  // --- PASO 6: REALINEACIÓN ---
+
   Serial.println("¡Línea encontrada! Realineando...");
   stopMotors();
   delay(100);
